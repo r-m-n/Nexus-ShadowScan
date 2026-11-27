@@ -4,7 +4,7 @@
 (ADR-005). The walk hands it one file at a time (``scan_file``): it reads the
 file relative to the opened scan root without following a link, prepares the
 redaction context and runs the credential, MCP, manifest, IaC, configuration
-and source passes. GitLab CI and cross-file source bindings use those snapshots after the walk.
+and source passes. Cross-file analysis uses those snapshots after the walk.
 """
 
 from __future__ import annotations
@@ -246,10 +246,9 @@ _MAX_AGENT_DEFINITIONS = 50
 class FileScanner:
     """Reads, redacts and analyzes the files of the walk, one at a time (ADR-005).
 
-    ``scan_file`` runs every analysis pass over one file and records what they
-    observe; ``resolve_reexport_sources`` binds the queued cross-file
-    consumers after the walk; ``file_errors`` records parser and validator
-    issues, each a coverage gap.
+    ``scan_file`` records each pass's observations for one file. After the walk,
+    ``resolve_cross_file`` binds imports and pipeline calls across files.
+    ``file_errors`` records parser and validator issues as coverage gaps.
     """
 
     def __init__(
@@ -802,7 +801,7 @@ class FileScanner:
         a match with an excerpt is redacted when its analysis ends. Only the
         excerpts of the lines its matches asked for are kept for emit; a
         re-export consumer queued for analysis after the walk is settled when
-        that analysis ends (``resolve_reexport_sources``).
+        that analysis ends (``resolve_cross_file``).
         """
         source = file.excerpts
         if source.wanted and source.safe_lines is None and source.structure is not None:
@@ -1891,11 +1890,12 @@ class FileScanner:
             else:
                 file.proj.agent_defs.append(self._parse_agent_definition(rel, file.text))
 
-    def resolve_reexport_sources(self, scan: _ScanState) -> None:
-        """Bind queued consumers after the walk has collected project snapshots."""
+    def resolve_cross_file(self, scan: _ScanState) -> None:
+        """Resolve source imports and CI script calls once the walk has collected all snapshots."""
         self.cross_file.resolve(scan)
         for project, rel, match, command in scan.gitlab_ci.matches(self.index):
             self._record(scan.projects[project], match, rel, command)
+        scan.gitlab_ci.report_limits(self.ctx)
 
     def _record_example_credential(self, proj: _Project, m: Match, rel: str, reason: str) -> None:
         """Remember a placeholder credential for informational project evidence."""

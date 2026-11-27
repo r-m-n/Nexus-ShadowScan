@@ -710,7 +710,7 @@ class TestPostWalkReserve:
             self.ctx.deadline = time.monotonic() + 5.0
             scan.margin = 20.0
 
-        monkeypatch.setattr(FileScanner, "resolve_reexport_sources", spent)
+        monkeypatch.setattr(FileScanner, "resolve_cross_file", spent)
         findings = FilesystemConnector(ctx).run()
         assert not any(f.resource_type == "project" for f in findings)
         assert ctx.stats.incomplete and not ctx.stats.skipped

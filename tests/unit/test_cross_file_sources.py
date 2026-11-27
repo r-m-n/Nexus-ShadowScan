@@ -25,13 +25,13 @@ def test_only_provider_consumers_add_nested_dispatch_deferral(
         source = provider + "\n" + source
     (package / "consumer.py").write_text(source)
     queued = []
-    resolve = file_scan.FileScanner.resolve_reexport_sources
+    resolve = file_scan.FileScanner.resolve_cross_file
 
     def capture(self, scan):
         queued.extend(item.file.rel for item in scan.reexport_files)
         return resolve(self, scan)
 
-    monkeypatch.setattr(file_scan.FileScanner, "resolve_reexport_sources", capture)
+    monkeypatch.setattr(file_scan.FileScanner, "resolve_cross_file", capture)
     _, ctx = run_connector("code.filesystem", path=str(tmp_path), use_git=False, scan_secrets=False)
     assert not ctx.stats.incomplete, ctx.stats.errors
     assert ("worker/consumer.py" in queued) is expected

@@ -1391,11 +1391,7 @@ class FilesystemConnector(BaseConnector):
                     "(extensionless ones were still analysed as text); artifact inventory incomplete",
                     incomplete=True,
                 )
-            self.file_scanner.resolve_reexport_sources(scan)
-            for rel in sorted(scan.gitlab_ci.limited_wrappers()):
-                self.ctx.error(
-                    f"code.filesystem: {rel}: GitLab CI command length exceeded", reason="analysis-limit"
-                )
+            self.file_scanner.resolve_cross_file(scan)
             for f in self.findings.emit_findings(scan):
                 if scan.diff_files is not None:
                     f.add_tag("diff-scan")

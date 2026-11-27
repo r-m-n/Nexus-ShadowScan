@@ -374,7 +374,7 @@ def test_a_queued_binders_wall_time_stops_short_of_the_deadline_margin(tmp_path,
     (tmp_path / "b_helpers.py").write_text("def helper():\n    return 1\n")
     clock = _fake_clock(monkeypatch)
     deadline = clock[0] + 30.0
-    resolve = file_scan.FileScanner.resolve_reexport_sources
+    resolve = file_scan.FileScanner.resolve_cross_file
     caps = []
     expected = []
 
@@ -394,7 +394,7 @@ def test_a_queued_binders_wall_time_stops_short_of_the_deadline_margin(tmp_path,
         monkeypatch.setattr(index_type, "scan_budget", recording)
         return resolve(self, scan)
 
-    monkeypatch.setattr(file_scan.FileScanner, "resolve_reexport_sources", late_resolve)
+    monkeypatch.setattr(file_scan.FileScanner, "resolve_cross_file", late_resolve)
     ctx = ConnectorContext(config={"path": str(tmp_path), "use_git": False}, index=index, deadline=deadline)
     findings = filesystem.FilesystemConnector(ctx).run()
     assert _uses_openai(findings)
@@ -419,7 +419,7 @@ def test_queued_consumers_are_redacted_in_the_walk_not_after_it(tmp_path, index,
             late.append(text[:40])
         return redact(text, structure)
 
-    resolve = file_scan.FileScanner.resolve_reexport_sources
+    resolve = file_scan.FileScanner.resolve_cross_file
 
     def marking(self, scan):
         queued.extend(source.file.rel for source in scan.reexport_files)
@@ -427,7 +427,7 @@ def test_queued_consumers_are_redacted_in_the_walk_not_after_it(tmp_path, index,
         return resolve(self, scan)
 
     monkeypatch.setattr(file_scan, "_redacted_source", counting)
-    monkeypatch.setattr(file_scan.FileScanner, "resolve_reexport_sources", marking)
+    monkeypatch.setattr(file_scan.FileScanner, "resolve_cross_file", marking)
     ctx = ConnectorContext(config={"path": str(tmp_path), "use_git": False}, index=index)
     findings = filesystem.FilesystemConnector(ctx).run()
     assert sorted(queued) == ["a_app.py", "b_app.py"]

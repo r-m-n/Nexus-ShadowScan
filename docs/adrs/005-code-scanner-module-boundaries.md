@@ -170,7 +170,7 @@ methods, down from 4,250 and 127.
    `_scan_file`) to `_record_special_files`, the record helpers the passes
    share (`_record`, `_handle_artifact`, `_looks_like_mcp_config` and the
    others), `_parse_agent_definition`, `_note_ua_mentions` and the post-walk
-   binding of Python re-export consumers (`resolve_reexport_sources`), with the
+   binding of source imports and CI script calls (`resolve_cross_file`), with the
    `_Project`, `_SourceFile` and `_MatchedSource` records. `file_errors` (was
    `_file_errors`) is also used by the findings code.
 4. **Findings** moved into the new `project_findings.ProjectFindings`:

@@ -7,6 +7,7 @@ import shlex
 from collections.abc import Iterator
 from dataclasses import dataclass, field, replace
 from pathlib import PurePosixPath
+from typing import TYPE_CHECKING
 
 import yaml
 from yaml.nodes import MappingNode, Node, ScalarNode, SequenceNode
@@ -14,6 +15,9 @@ from yaml.nodes import MappingNode, Node, ScalarNode, SequenceNode
 from shadowscan.signatures import SignatureIndex
 from shadowscan.signatures.matcher import Match
 from shadowscan.utils.safe_yaml import StrictBoundedConfigLoader, YAMLResourceLimitError
+
+if TYPE_CHECKING:
+    from shadowscan.connectors.base import ConnectorContext
 
 _CONFIGS = {".gitlab-ci.yml", ".gitlab-ci.yaml"}
 _MAX_COMMAND_CHARS = 16_384
@@ -171,9 +175,11 @@ class GitLabCI:
                 self.scripts[rel] = list(found.values())
         return []
 
-    def limited_wrappers(self) -> set[str]:
-        """Only a wrapper referenced by this pipeline affects its coverage."""
-        return self.limited_scripts.intersection(hit.value for _, _, _, hit in self.calls if hit.wrapper)
+    def report_limits(self, ctx: ConnectorContext) -> None:
+        """Report overlong shell commands only in scripts called by the pipeline."""
+        wrappers = (hit.value for _, _, _, hit in self.calls if hit.wrapper)
+        for rel in sorted(self.limited_scripts.intersection(wrappers)):
+            ctx.error(f"code.filesystem: {rel}: GitLab CI command length exceeded", reason="analysis-limit")
 
     def matches(self, index: SignatureIndex) -> Iterator[tuple[str, str, Match, str]]:
         # Only fixed prefixes are sent to the signature matcher, once each even across repeated calls.
