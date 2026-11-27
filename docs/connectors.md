@@ -9,6 +9,9 @@ unconditional module-level bindings before use; JavaScript aliases substitute
 wildcards before path normalization and confinement. See [cross-file tool dispatch](connectors/code.md#cross-file-tool-dispatch)
 for the supported shapes, alias requirements and conservative limits.
 
+The code connector also recognizes [GitLab CI coding-agent commands](connectors/code.md#gitlab-ci-coding-agent-commands)
+in offline repository snapshots, with source locations for direct commands and one-hop shell wrappers.
+
 ## Modes and shared collection rules
 
 Most connectors have a **live** mode (API credentials) and an **offline** mode

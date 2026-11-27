@@ -170,6 +170,13 @@ def _name_requires_corroboration(match: Match, unverified_names: bool) -> bool:
     return match.signal.type == "name" and (match.signal.ambiguous or unverified_names)
 
 
+def _evidence_attributes(m: Match, value: str) -> dict[str, Any]:
+    attributes: dict[str, Any] = {"category": m.signature.category, "value": value}
+    if "gitlab_ci" in m.extra:
+        attributes["gitlab_ci"] = m.extra["gitlab_ci"]
+    return attributes
+
+
 def apply_matches(
     finding: Finding,
     matches: Iterable[Match],
@@ -276,7 +283,7 @@ def apply_matches(
         loc = location
         if loc and m.line:
             loc = f"{loc}:{m.line}"
-        attributes: dict[str, Any] = {"category": sig.category, "value": value}
+        attributes = _evidence_attributes(m, value)
         weight = max(0.0, min(1.0, m.weight * weight_scale))
         if ambiguous_name and not corroborated_name:
             # Multiple aliases/products/publisher fields are one weak name

@@ -145,6 +145,7 @@ from shadowscan.connectors.code.file_scan import _UndecodableFile as _Undecodabl
 from shadowscan.connectors.code.file_scan import _yaml_declares_mcp as _yaml_declares_mcp
 from shadowscan.connectors.code.file_scan import assess_posture as assess_posture
 from shadowscan.connectors.code.file_scan import posture_parseable as posture_parseable
+from shadowscan.connectors.code.gitlab_ci import GitLabCI
 from shadowscan.connectors.code.go_semantics import langchaingo_agent_matches as langchaingo_agent_matches
 from shadowscan.connectors.code.import_provenance import local_module_conflict as local_module_conflict
 from shadowscan.connectors.code.instruction_content import ContentHit as ContentHit
@@ -820,6 +821,7 @@ class _ScanState:
     iam_wildcards: dict[str, list[tuple[str, int, str]]] = field(default_factory=dict)
     diff_files: frozenset[str] | None = None  # when set, only these changed files + context files are scanned
     diff_base_ref: str | None = None  # the ref that was diffed against
+    gitlab_ci: GitLabCI = field(default_factory=GitLabCI)
     reexports: PythonReexports = field(default_factory=PythonReexports)
     javascript_imports: JavascriptToolImports = field(default_factory=JavascriptToolImports)
     python_dispatches: PythonDispatches = field(default_factory=PythonDispatches)
@@ -1390,6 +1392,10 @@ class FilesystemConnector(BaseConnector):
                     incomplete=True,
                 )
             self.file_scanner.resolve_reexport_sources(scan)
+            for rel in sorted(scan.gitlab_ci.limited_wrappers()):
+                self.ctx.error(
+                    f"code.filesystem: {rel}: GitLab CI command length exceeded", reason="analysis-limit"
+                )
             for f in self.findings.emit_findings(scan):
                 if scan.diff_files is not None:
                     f.add_tag("diff-scan")

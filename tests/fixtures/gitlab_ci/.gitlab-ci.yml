@@ -1,0 +1,11 @@
+default:
+  before_script:
+    - echo "claude -p prompt-from-an-example"
+review:
+  script:
+    - npx --yes @anthropic-ai/claude-code -p "example review prompt"
+    - |
+      echo "codex exec is documented here"
+      codex exec "example review prompt"
+  after_script:
+    - sh ci/finish.sh

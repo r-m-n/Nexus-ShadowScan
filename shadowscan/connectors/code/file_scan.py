@@ -3,10 +3,8 @@
 ``FileScanner`` is the file-scan collaborator of ``FilesystemConnector``
 (ADR-005). The walk hands it one file at a time (``scan_file``): it reads the
 file relative to the opened scan root without following a link, prepares the
-credential context its excerpts are redacted with, and dispatches it to the
-credential, MCP, manifest, IaC, configuration and source passes, which record
-what they observe on the file's project and the scan state. Queued cross-file
-consumers are bound after the walk (``resolve_reexport_sources``).
+redaction context and runs the credential, MCP, manifest, IaC, configuration
+and source passes. GitLab CI and cross-file source bindings use those snapshots after the walk.
 """
 
 from __future__ import annotations
@@ -470,7 +468,7 @@ class FileScanner:
             # 3. source & config content
             self._scan_content(scan, file)
 
-            # 4. special files
+            self.file_errors(rel, scan.gitlab_ci.observe(rel, proj_root, text), defect=True)
             self._record_special_files(scan, file)
         finally:
             if not file.reexport_pending:
@@ -1896,6 +1894,8 @@ class FileScanner:
     def resolve_reexport_sources(self, scan: _ScanState) -> None:
         """Bind queued consumers after the walk has collected project snapshots."""
         self.cross_file.resolve(scan)
+        for project, rel, match, command in scan.gitlab_ci.matches(self.index):
+            self._record(scan.projects[project], match, rel, command)
 
     def _record_example_credential(self, proj: _Project, m: Match, rel: str, reason: str) -> None:
         """Remember a placeholder credential for informational project evidence."""

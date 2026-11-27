@@ -15,6 +15,27 @@ See the [shared connector entry guide](../connectors.md#connector-entry-guide)
 for the common modes, permissions, options, fail-closed and evidence-limit
 references.
 
+## GitLab CI coding-agent commands
+
+When scanning an extracted repository, point `shadowscan code` at the directory containing
+`.gitlab-ci.yml` (or `.gitlab-ci.yaml`). The filesystem connector scans literal commands
+in job `script`, `before_script` and `after_script` sections, including default setup
+and cleanup. It recognizes `claude -p`, `claude --print`, `codex exec` and direct
+`npx` launches of Claude Code, Codex and Gemini CLI, including `npx --yes` and `npx -y`.
+
+One literal call to a relative `.sh` or `.bash` file, such as `sh ci/review.sh`, can
+supply evidence from a wrapper. It must be the first command of a section starting at
+the repository root and the target must already have been read in the same scan.
+The scan uses the ordinary file walk and never runs a job or opens a referenced path.
+Hidden templates, external includes, dynamic shell evaluation and recursive wrappers
+are outside this check. Rules and conditions determining whether a job actually ran
+are not evaluated.
+
+An agent's JSON evidence contains a normalized command prefix and its source location.
+`attributes.gitlab_ci` identifies the CI file, line and section. For a wrapper the two
+locations identify the pipeline call and the command in the script. Multiline folded
+or quoted YAML commands point to the beginning of the scalar.
+
 ## Cross-file tool dispatch
 
 The code scanner resolves a bounded subset of local tool dispatch from files
