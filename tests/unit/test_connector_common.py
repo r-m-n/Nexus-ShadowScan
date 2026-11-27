@@ -1,11 +1,35 @@
-"""Permission classification shared by the connectors keeps a stable order."""
+"""Shared connector evidence and permission handling."""
 
 from __future__ import annotations
 
 import pytest
 
-from shadowscan.connectors.common import classify_permissions
+from shadowscan.connectors.common import apply_matches, classify_permissions
 from shadowscan.models import Finding, Kind, Surface
+from shadowscan.signatures.loader import Signal, Signature
+from shadowscan.signatures.matcher import Match
+from shadowscan.utils.text import redact
+
+
+def test_evidence_context_preserves_redaction_and_excludes_internal_match_data():
+    value = "synthetic-test-value"
+    match = Match(
+        Signature("provider.demo", "Demo", "provider"),
+        Signal(type="secret"),
+        value,
+        0.8,
+        extra={
+            "internal": value,
+            "evidence_attributes": {"source_line": 12, "category": "other", "value": value},
+        },
+    )
+    finding = Finding(Surface.CODE, "test", Kind.AGENT_CONFIG, "Demo", "demo", "repository")
+    apply_matches(finding, [match])
+    assert finding.evidence[0].attributes == {
+        "source_line": 12,
+        "category": "provider",
+        "value": redact(value),
+    }
 
 
 @pytest.mark.parametrize("container", [set, frozenset])

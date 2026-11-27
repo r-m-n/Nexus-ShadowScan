@@ -32,11 +32,8 @@ def test_gitlab_ci_agent_evidence_on_an_archive(run_connector):
     assert all("prompt" not in str(e) for e in evidence.values())
 
 
-def test_yaml_command_forms_and_locations(index):
-    scan = GitLabCI()
-    errors = scan.observe(
-        ".gitlab-ci.yaml",
-        ".",
+def test_yaml_command_forms_and_locations(tmp_path, run_connector):
+    (tmp_path / ".gitlab-ci.yaml").write_text(
         """\
 .template:
   script: &agent 'claude -p "a prompt"'
@@ -49,14 +46,18 @@ review:
     @anthropic-ai/claude-code
 """,
     )
-    assert not errors
+    findings, ctx = run_connector("code.filesystem", paths=[str(tmp_path)], use_git=False)
+    assert not ctx.stats.errors
     assert {
-        (m.signature_id, m.line, m.extra["gitlab_ci"]["section"]) for _, _, m, _ in scan.matches(index)
+        (e.signature, e.location, e.attributes["gitlab_ci"]["section"])
+        for finding in findings
+        for e in finding.evidence
+        if "gitlab_ci" in e.attributes
     } == {
-        ("coding-agent.claude-code", 2, "before_script"),
-        ("coding-agent.openai-codex", 6, "script"),
-        ("coding-agent.gemini-cli", 6, "script"),
-        ("coding-agent.claude-code", 7, "after_script"),
+        ("coding-agent.claude-code", ".gitlab-ci.yaml:2", "before_script"),
+        ("coding-agent.openai-codex", ".gitlab-ci.yaml:6", "script"),
+        ("coding-agent.gemini-cli", ".gitlab-ci.yaml:6", "script"),
+        ("coding-agent.claude-code", ".gitlab-ci.yaml:7", "after_script"),
     }
 
 

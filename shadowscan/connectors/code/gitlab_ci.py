@@ -189,10 +189,12 @@ class GitLabCI:
                     )
                     cache[cmd.value] = max(hits, key=lambda m: m.weight, default=None)
                 if match := cache[cmd.value]:
-                    context = {"path": config, "line": call.line, "section": section}
+                    attributes = {"gitlab_ci": {"path": config, "line": call.line, "section": section}}
                     yield (
                         project,
                         location,
-                        replace(match, line=cmd.line, extra={"gitlab_ci": context}),
+                        replace(
+                            match, line=cmd.line, extra={**match.extra, "evidence_attributes": attributes}
+                        ),
                         cmd.value,
                     )
